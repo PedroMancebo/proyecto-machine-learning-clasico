@@ -1,0 +1,120 @@
+import pandas as pd
+import numpy as np
+#import seaborn as sn
+from sklearn.model_selection import cross_val_score
+from sklearn.svm import SVC
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import roc_auc_score
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_curve, auc
+
+from sklearn.model_selection import train_test_split
+from sklearn.datasets import make_classification, make_blobs
+
+
+
+def blight_model():
+    train_data = pd.read_csv("train.csv", encoding = 'ISO-8859-1',
+        dtype={'zip_code': pd.np.str,'non_us_str_code'
+               : pd.np.str,'grafitti_status': pd.np.str})
+    test_data= pd.read_csv("test.csv", 
+            encoding = 'ISO-8859-1',dtype={'zip_code'
+                    : pd.np.str,'non_us_str_code': 
+                pd.np.str,'grafitti_status': pd.np.str})
+    train_data1=train_data.loc[:,
+ ['ticket_id','agency_name','inspector_name', 'violator_name', 
+  'ticket_issued_date', 'hearing_date', 'violation_code', 
+  'violation_description', 'fine_amount','admin_fee', 'state_fee', 
+  'late_fee', 'discount_amount', 'clean_up_cost', 
+  'judgment_amount','grafitti_status','compliance']]
+    test_data1=test_data.loc[:,['ticket_id','agency_name',
+                                'inspector_name', 'violator_name', 
+                                'ticket_issued_date', 'hearing_date',
+                                'violation_code', 'violation_description',
+                                'fine_amount','admin_fee', 'state_fee','late_fee', 
+                                'discount_amount', 
+                                'clean_up_cost','judgment_amount',
+                                'grafitti_status']]
+    
+    ucats_an = set(train_data1['agency_name'])|{'<unknown>'}
+    train_data1['agency_name']= pd.Categorical
+    (train_data1['agency_name'],categories=ucats_an)
+    .fillna('<unknown>').codes
+    test_data1['agency_name']= 
+    pd.Categorical(test_data1['agency_name'],categories=ucats_an)
+    .fillna('<unknown>').codes
+    
+    ucats_an = set(train_data1['grafitti_status'])|{'<unknown>'}
+    train_data1['grafitti_status']= pd.Categorical(train_data1['grafitti_status']
+                                                   ,categories=ucats_an).fillna('<unknown>').codes
+    test_data1['grafitti_status']= pd.Categorical(test_data1['grafitti_status'],
+                                                  categories=ucats_an).fillna('<unknown>').codes
+    
+    ucats_an = set(train_data1['violation_code'])|{'<unknown>'}
+    train_data1['violation_code']= pd.Categorical(train_data1['violation_code'],categories=ucats_an).fillna('<unknown>').codes
+    test_data1['violation_code']= pd.Categorical(test_data1['violation_code'],categories=ucats_an).fillna('<unknown>').codes
+    
+    ucats_an = set(train_data1['violation_description'])|{'<unknown>'}
+    train_data1['violation_description']= 
+    pd.Categorical(train_data1['violation_description'],categories=ucats_an)
+    .fillna('<unknown>').codes
+    test_data1['violation_description']= pd.Categorical
+    (test_data1['violation_description']                                               
+     ,categories=ucats_an)
+    .fillna('<unknown>').codes
+    train_data1=train_data1.dropna()
+    train=train_data1.loc[:,['ticket_id','agency_name',
+                             'violation_code', 
+                             'violation_description', 
+                             'fine_amount', 'admin_fee',
+                             'state_fee','late_fee', 'discount_amount',
+                             'clean_up_cost', 
+                             'judgment_amount','grafitti_status',
+                             'compliance']]
+    test=test_data1.loc[:,['ticket_id','agency_name','violation_code', 
+                           'violation_description'
+                           ,'fine_amount', 'admin_fee','state_fee',
+                           'late_fee', 
+                           'discount_amount','clean_up_cost', 
+                           'judgment_amount',
+                           'grafitti_status']]
+    train=train.reset_index()
+    train=train.set_index('ticket_id')
+    test=test.reset_index()
+    test=test.set_index('ticket_id')
+    train=train.dropna()
+    
+    X, y = train.loc[:,['violation_code','fine_amount', 'admin_fee',
+                        ,'state_fee', 
+                    'late_fee', 'discount_amount', 
+                        'judgment_amount', 'grafitti_status']], 
+    train['compliance']
+    X_train, X_test, y_train, y_test = 
+    train_test_split(X, y, random_state=0)
+    #clf = SVC(kernel='rbf')
+    #grid_values = {'gamma': [0.001, 0.01, 0.05]}
+    #grid_clf_auc = GridSearchCV(clf, 
+    param_grid = grid_values, scoring = 'roc_auc')
+    #svm = SVC(gamma=0.1).fit(X_train, y_train)
+    clf = RandomForestClassifier()
+    .fit(X_train, y_train)
+    #y_score_svm = svm.decision_function(X_test)
+    #grid_clf_auc.fit(X_train, y_train)
+    #y_fn_scores_auc = clf.predict_proba(X_test)
+    acc = roc_auc_score(y_test, clf.predict(X_test))
+    
+    #grid_clf_auc.best_score_
+    #y_score_=clf.score(X_train, y_train)
+    #fpr_svm, tpr_svm,_= roc_curve(y_test, y_score_svm)
+    #roc_auc_svm = auc(fpr_svm, tpr_svm)
+    test_datafin=train_data.loc[:,['ticket_id']]
+    #test_datafin['probabilidades']=clf.predict(X_test)
+    testfinal=test.loc[:,['violation_code','fine_amount', 
+                          'admin_fee','state_fee', 'late_fee', 
+                          'discount_amount', 'judgment_amount', 
+                          'grafitti_status']]
+    #solucion=test
+    clf.predict_proba(testfinal)
+    compliance=pd.Series(data=clf.predict_proba(testfinal)[:, 1], 
+                         index=testfinal.index)
+    return compliance
