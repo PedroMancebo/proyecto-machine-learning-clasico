@@ -1,3 +1,7 @@
+#Importamos los paquetes que vamos a necestiar tanto para el procesamiento de datos de censo como para los algoritmos de machine learning
+# y las métricas que vamos a emplear
+
+
 import pandas as pd
 import numpy as np
 #import seaborn as sn
@@ -11,9 +15,11 @@ from sklearn.metrics import roc_curve, auc
 from sklearn.model_selection import train_test_split
 from sklearn.datasets import make_classification, make_blobs
 
-
+#Este modelo consta tan solo de una función para detectar a los posibles candidatos a no pagar la multa
 
 def blight_model():
+
+#Reducimos las varibles de estudio de nuestro censo inicial
     train_data = pd.read_csv("train.csv", encoding = 'ISO-8859-1',
         dtype={'zip_code': pd.np.str,'non_us_str_code'
                : pd.np.str,'grafitti_status': pd.np.str})
@@ -35,7 +41,7 @@ def blight_model():
                                 'discount_amount', 
                                 'clean_up_cost','judgment_amount',
                                 'grafitti_status']]
-    
+    #Como hay varibles no númericas con Python podemos pasarlas a númerico a partir de estas sentencias
     ucats_an = set(train_data1['agency_name'])|{'<unknown>'}
     train_data1['agency_name']= pd.Categorical
     (train_data1['agency_name'],categories=ucats_an)
@@ -62,6 +68,7 @@ def blight_model():
     (test_data1['violation_description']                                               
      ,categories=ucats_an)
     .fillna('<unknown>').codes
+    #Eliminamos las casillas vacías
     train_data1=train_data1.dropna()
     train=train_data1.loc[:,['ticket_id','agency_name',
                              'violation_code', 
@@ -84,6 +91,9 @@ def blight_model():
     test=test.set_index('ticket_id')
     train=train.dropna()
     
+    #Implantamos nuestro modelo de Machine Learning, defiendo las variables que irán al entrenamiento y la partición de nuestro dataset
+    #correspondiente a la predicción
+    
     X, y = train.loc[:,['violation_code','fine_amount', 'admin_fee',
                         ,'state_fee', 
                     'late_fee', 'discount_amount', 
@@ -96,6 +106,9 @@ def blight_model():
     #grid_clf_auc = GridSearchCV(clf, 
     param_grid = grid_values, scoring = 'roc_auc')
     #svm = SVC(gamma=0.1).fit(X_train, y_train)
+    
+    ###APLICAMOS ARBOLES DE DECISIÓN COMPUESTOS ALEATORIOS###
+    
     clf = RandomForestClassifier()
     .fit(X_train, y_train)
     #y_score_svm = svm.decision_function(X_test)
